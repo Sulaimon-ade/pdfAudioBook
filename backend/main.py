@@ -2,7 +2,10 @@ import os
 import fitz  # PyMuPDF
 import requests
 from fastapi import FastAPI, UploadFile, File, Form
-
+from PyPDF2 import PdfReader
+from gtts import gTTS
+import uuid
+import os
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
@@ -68,3 +71,33 @@ async def upload_pdf(
     except Exception as e:
         print(f"[ERROR] {str(e)}")
         return {"error": str(e)}
+    
+@app.post("/upload-google")
+async def upload_google(file: UploadFile = File(...)):
+    filename = f"temp_{file.filename}"
+    
+    with open(filename, "wb") as f:
+        f.write(await file.read())
+
+    try:
+        reader = PdfReader(filename)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        text = text.strip().replace("\n", " ")
+
+        if not text:
+            return {"error": "No readable text found in PDF."}
+
+        # Generate TTS
+        tts = gTTS(text=text[:5000], lang='en')  # gTTS max safe input is ~5000 chars
+        audio_filename = f"{uuid.uuid4().hex}.mp3"
+        tts.save(audio_filename)
+
+        return FileResponse(path=audio_filename, media_type="audio/mpeg", filename=audio_filename)
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
+    finally:
+        os.remove(filename)
