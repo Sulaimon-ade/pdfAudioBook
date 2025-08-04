@@ -12,6 +12,7 @@ interface AppData {
   selectedVoice: string;
   audioUrl: string;
   errorMessage: string;
+  ttsEngine: 'basic' | 'human-like';
 }
 
 function App() {
@@ -20,7 +21,8 @@ function App() {
     selectedFile: null,
     selectedVoice: '',
     audioUrl: '',
-    errorMessage: ''
+    errorMessage: '',
+    ttsEngine: 'basic'
   });
 
   const handleFileSelect = (file: File | null) => {
@@ -47,7 +49,9 @@ function App() {
       formData.append('file', data.selectedFile);
       formData.append('voice_id', data.selectedVoice);
 
-      const response = await fetch('/upload', {
+      const route = data.ttsEngine === 'basic' ? '/upload-google' : '/upload';
+
+      const response = await fetch(route, {
         method: 'POST',
         body: formData,
       });
@@ -70,13 +74,15 @@ function App() {
     }
   };
 
+
   const resetApp = () => {
     setState('idle');
     setData({
       selectedFile: null,
       selectedVoice: '',
       audioUrl: '',
-      errorMessage: ''
+      errorMessage: '',
+      ttsEngine: 'basic'
     });
   };
 
@@ -170,6 +176,26 @@ function App() {
                     disabled={state === 'processing'}
                   />
                 </div>
+                <div>
+                  <h2 className="text-xl font-bold text-amber-900 mb-4">
+                    3. Choose Voice Engine
+                  </h2>
+                  <select
+                    className="border border-amber-300 rounded px-3 py-2 text-amber-900 w-full"
+                    value={data.ttsEngine}
+                    onChange={(e) =>
+                      setData((prev) => ({
+                        ...prev,
+                        ttsEngine: e.target.value as 'basic' | 'human-like'
+                      }))
+                    }
+                    disabled={state === 'processing'}
+                  >
+                    <option value="basic">Basic voice (Free)</option>
+                    <option value="human-like">Human like (Premium)</option>
+                  </select>
+                </div>
+
 
                 {/* Convert Button */}
                 <div className="pt-4">
